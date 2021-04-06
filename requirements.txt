@@ -1,0 +1,9 @@
+itemloaders
+scrapy
+numpy
+pymysql
+pandas
+scipy
+TA-Lib
+openpyxl
+cryptography
