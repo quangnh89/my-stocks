@@ -28,10 +28,15 @@ class Stock:
 
         sql_query = pd.read_sql_query(sql_string, self.conn)
         df = pd.DataFrame(sql_query)
+
+        # todo: add current price before reverse string. Current price is from table price_board_minute.
+        # todo: Spider price_board_minute runs every minutes
+
         self.df = df.reindex(index=df.index[::-1])
         if not self.df.empty:
             self.LAST_SESSION = self.df['t'].iloc[-1]
 
+            self.df['changed'] = self.df['c'].pct_change()
             self.df['rsi'] = talib.RSI(self.df['c'])
             self.df['cci'] = talib.CCI(self.df['h'], self.df['l'], self.df['c'], timeperiod=20)
 
@@ -39,10 +44,13 @@ class Stock:
                                                                                          slowperiod=26, signalperiod=9)
 
             self.CURRENT_CLOSE = self.df['c'].iloc[-1]
-
+            self.df['SMA_5'] = talib.SMA(self.df['c'], timeperiod=5)
+            self.df['SMA_10'] = talib.SMA(self.df['c'], timeperiod=10)
+            self.df['SMA_20'] = talib.SMA(self.df['c'], timeperiod=20)
             self.df['SMA_50'] = talib.SMA(self.df['c'], timeperiod=50)
             self.df['SMA_150'] = talib.SMA(self.df['c'], timeperiod=150)
             self.df['SMA_200'] = talib.SMA(self.df['c'], timeperiod=200)
+            # Volume SMA 20
             self.df['V_SMA_20'] = talib.SMA(self.df['v'], timeperiod=20)
             self.LAST_V_SMA_20 = self.df['V_SMA_20'].iloc[-1]
 
@@ -76,6 +84,14 @@ class Stock:
     # Kiem tra gia tri giao dich trong phien. Toi thieu 3ty, recommend 5ty, best >10ty
     def f_check_gia_tri_giao_dich_trong_phien(self, value=5000000000.0):
         return (not self.df.empty and self.LAST_V_SMA_20 * self.CURRENT_CLOSE) >= value
+
+    # last changed
+    def f_last_changed(self):
+        return self.df['changed'].iloc[-1]
+
+    # Check gia chua tang qua 3 phien lien tiep
+    def f_check_price_continous_jump(self, step=3):
+        return not (self.df['c'].iloc[-1] > self.df['c'].iloc[-2] > self.df['c'].iloc[-3])
 
     def f_1stRSI(self):
         try:
@@ -145,6 +161,13 @@ class Stock:
     # Overbought --> should sell
     def f_is_over_bought(self, horizontal=100):
         return self.cci.iloc[-1] > horizontal
+
+    def f_check_uptrend_1_month(self):
+        return self.CURRENT_CLOSE > self.df['SMA_5'].iloc[-1] > self.df['SMA_10'].iloc[-1] > self.df['SMA_20'].iloc[-1]
+
+    # check price jump 1%
+    def f_check_price_jump(self, step=0.01):
+        return self.df['changed'].iloc[-1] >= step
 
     # minervini conditions
     def f_check_7_conditions(self):
