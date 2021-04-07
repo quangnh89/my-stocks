@@ -8,6 +8,7 @@ from datetime import datetime
 from itemloaders import ItemLoader
 
 from StockSpiders3.items import OHLC
+from StockSpiders3.utils import Config
 
 
 class VietstockpricesboardSpider(scrapy.Spider):
@@ -19,6 +20,13 @@ class VietstockpricesboardSpider(scrapy.Spider):
     # 1420045200 - 2015/1/1 00:00:00
     START_DATE = 1420045200
     DAILY = False
+    df_companies = None
+    companies = None
+
+    def __init__(self, resolution='D', **kwargs):
+        self.resolution = resolution
+        self.config = Config()
+        super().__init__(**kwargs)
 
     # https://api.vietstock.vn/ta/history?symbol=BHP&resolution=D&from=1586252875&to=1617356935
 
@@ -60,19 +68,37 @@ class VietstockpricesboardSpider(scrapy.Spider):
         )
 
     def after_login(self, response):
+        # check resolution
+        ts1 = int(datetime.now().timestamp())
+        if (self.resolution == 'D') and (ts1 > (self.config.f_last_run_day() + 86400)):
+            ts2 = self.config.last_run_day
+        elif (self.resolution == '1') and (ts1 > (self.config.f_last_run_minute() + 60)):
+            ts2 = self.config.last_run_minute
+        elif self.resolution == '60' and (ts1 > (self.config.f_last_run_hour() + 3600)):
+            ts2 = self.config.last_run_hour
+        else:
+            ts2 = ts1
+
+        print('Resolution', self.resolution)
+        print('last_run', self.config.f_last_run_day())
+        #
+        # self.config.f_update_last_run('D')
+        # pass
+
         for code in self.companies:
-            ts1 = int(datetime.now().timestamp())
-            if self.DAILY:
-                ts2 = ts1 - 86400  # 1 day
-                url = self.api_url + '?symbol=' + code + '&resolution=D&from=' + str(ts2) + '&to=' + str(ts1)
+            # print('code', code, ts2, ts1)
+            for x in range(ts2, ts1, 10000000):
+                ts3 = ts1 if (x + 10000000 > ts1) else (x + 10000000)
+                # print('Ts3', ts3)
+                url = self.api_url + '?symbol=' + code + '&resolution=' + self.resolution + '&from=' + str(x) + '&to=' + str(ts3)
+                # print('URL', url)
                 yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={'code': code})
-            else:
-                ts2 = ts1
-                while ts2 >= self.START_DATE:
-                    ts2 = ts1 - 20000000
-                    url = self.api_url + '?symbol=' + code + '&resolution=D&from=' + str(ts2) + '&to=' + str(ts1)
-                    ts1 = ts2
-                    yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={'code': code})
+
+            # while ts2 >= self.START_DATE:
+            #     ts2 = ts1 - 20000000
+            #     url = self.api_url + '?symbol=' + code + '&resolution=D&from=' + str(ts2) + '&to=' + str(ts1)
+            #     ts1 = ts2
+            #     yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={'code': code})
 
     def parse(self, response):
         code = response.meta.get('code')
@@ -81,6 +107,7 @@ class VietstockpricesboardSpider(scrapy.Spider):
         results = []
         for idx in range(len(data['t'])):
             item = OHLC()
+            item['res'] = self.resolution
             item['code'] = code
             item['t'] = data['t'][idx]
             item['o'] = data['o'][idx]

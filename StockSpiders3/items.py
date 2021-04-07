@@ -24,6 +24,7 @@ class StocksItem(scrapy.Item):
 
 
 class OHLC(scrapy.Item):
+    res = Field()
     code = Field()
     t = Field()
     o = Field()

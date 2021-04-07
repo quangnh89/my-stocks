@@ -75,8 +75,15 @@ class VietstockPriceboardPipeline(BaseDBPipeline):
             return item
 
     def insert_vietstock_price_board_day(self, item):
-        sql_statement = '''INSERT INTO tbl_price_board_day(code, t, o, h, l, c, v) VALUES (%s, %s, %s, %s, %s, %s, %s)'''
         adt = ItemAdapter(item)
+        if adt.get('res') == 'D':
+            tbl = 'tbl_price_board_day'
+        elif adt.get('res') == '1':
+            tbl = 'tbl_price_board_minute'
+        elif adt.get('res') == '60':
+            tbl = 'tbl_price_board_hour'
+
+        sql_statement = '''INSERT INTO ''' + tbl + '''(code, t, o, h, l, c, v) VALUES (%s, %s, %s, %s, %s, %s, %s)'''
         try:
             self.cursor.execute(sql_statement, (
                 adt.get('code'),
@@ -177,8 +184,8 @@ class VietstockCompanyAZPipeline(BaseDBPipeline):
 
 class VietstockFinanceInfoPipeline(BaseDBPipeline):
     def process_item(self, item, spider):
-        print('Processing FINANCE INFO')
         if spider.name == 'vietstockfinanceinfo':
+            print('Processing FINANCE INFO')
             self.insert_finance_info(item)
         else:
             return item
