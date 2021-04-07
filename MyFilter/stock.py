@@ -7,9 +7,13 @@ class Stock:
     def __init__(self, code, resolution='D'):
         self.code = code
         self.resolution = resolution
+        self.conn = pymysql.connect(host='localhost', user='admin', password='123456', database='mystocks')
 
         # Load finance info
-        """select * from tbl_finance_info as ti where ti.code='"""+code+"""' order by year_period desc, quarter_period desc limit 4"""
+        sql_finance_info = """select * from tbl_finance_info as ti where ti.code='"""+code+"""' order by year_period desc, quarter_period desc limit 4"""
+        finance_info_data = pd.read_sql_query(sql_finance_info, self.conn)
+        self.df_fi = pd.DataFrame(finance_info_data)  # data-frame finance information
+        # print('DF_FI', self.df_fi)
 
         # Load prices
         if resolution == 'D':
@@ -21,8 +25,6 @@ class Stock:
         else:
             tbl = 'tbl_price_board_day'
 
-        self.conn = pymysql.connect(host='localhost', user='admin', password='123456', database='mystocks')
-
         sql_string = """select * from """ + tbl + """ as pb where pb.code='""" + self.code + """' order by t desc limit 365"""
         # print('sql_string', sql_string)
 
@@ -32,10 +34,95 @@ class Stock:
         # todo: add current price before reverse string. Current price is from table price_board_minute.
         # todo: Spider price_board_minute runs every minutes
 
+        if not self.df_fi.empty:
+            # finance info #EPS means()
+            self.EPS = self.df_fi['eps'].iloc[0]
+            self.EPS_MEAN4 = self.df_fi['eps'].mean()
+            rev_df_fi = self.df_fi['eps'][::-1]
+            self.df_fi['eps_changed'] = rev_df_fi.pct_change()
+
+            print(self.df_fi['eps'])
+            print(self.df_fi['eps_changed'].mean())
+
+            self.BVPS = self.df_fi['bvps'].iloc[0]
+            self.BVPS_MEAN4 = self.df_fi['bvps'].mean()
+            self.PE = self.df_fi['pe'].iloc[0]
+            self.PE_MEAN4 = self.df_fi['pe'].mean()
+            self.ROS = self.df_fi['ros'].iloc[0]
+            self.ROS_MEAN4 = self.df_fi['ros'].mean()
+            self.ROEA = self.df_fi['roea'].iloc[0]
+            self.ROEA_MEAN4 = self.df_fi['roea'].mean()
+            self.ROAA = self.df_fi['roaa'].iloc[0]
+            self.ROAA_MEAN4 = self.df_fi['roaa'].mean()
+            self.CURRENT_ASSETS = self.df_fi['current_assets'].iloc[0]
+            self.CURRENT_ASSETS_MEAN4 = self.df_fi['current_assets'].mean()
+            self.TOTAL_ASSETS = self.df_fi['total_assets'].iloc[0]
+            self.TOTAL_ASSETS_MEAN4 = self.df_fi['total_assets'].mean()
+            self.LIABILITIES = self.df_fi['liabilities'].iloc[0]
+            self.LIABILITIES_MEAN4 = self.df_fi['liabilities'].mean()
+            self.SHORT_LIABILITIES = self.df_fi['short_term_liabilities'].iloc[0]
+            self.SHORT_LIABILITIES_MEAN4 = self.df_fi['short_term_liabilities'].mean()
+            self.OWNER_EQUITY = self.df_fi['owner_equity'].iloc[0]
+            self.OWNER_EQUITY_MEAN4 = self.df_fi['owner_equity'].mean()
+            self.MINORITY_INTEREST = self.df_fi['minority_interest'].iloc[0]
+            self.MINORITY_INTEREST_MEAN4 = self.df_fi['minority_interest'].mean()
+            self.NET_REVENUE = self.df_fi['net_revenue'].iloc[0]
+            self.NET_REVENUE_MEAN4 = self.df_fi['net_revenue'].mean()
+            self.GROSS_PROFIT = self.df_fi['gross_profit'].iloc[0]
+            self.GROSS_PROFIT_MEAN4 = self.df_fi['gross_profit'].mean()
+            self.OPERATING_PROFIT = self.df_fi['operating_profit'].iloc[0]
+            self.OPERATING_PROFIT_MEAN4 = self.df_fi['operating_profit'].mean()
+            self.PROFIT_AFTER_TAX = self.df_fi['profit_after_tax'].iloc[0]
+            self.PROFIT_AFTER_TAX_MEAN4 = self.df_fi['profit_after_tax'].mean()
+            self.NET_PROFIT = self.df_fi['net_profit'].iloc[0]
+            self.NET_PROFIT_MEAN4 = self.df_fi['net_profit'].mean()
+        else:
+            # finance info #EPS means()
+            self.EPS = 0
+            self.EPS_MEAN4 = 0
+            rev_df_fi = self.df_fi['eps'][::-1]
+            self.df_fi['eps_changed'] = rev_df_fi.pct_change()
+
+            print(self.df_fi['eps'])
+            print(self.df_fi['eps_changed'].mean())
+
+            self.BVPS = 0
+            self.BVPS_MEAN4 = 0
+            self.PE = 0
+            self.PE_MEAN4 = 0
+            self.ROS = 0
+            self.ROS_MEAN4 = 0
+            self.ROEA = 0
+            self.ROEA_MEAN4 = 0
+            self.ROAA = 0
+            self.ROAA_MEAN4 = 0
+            self.CURRENT_ASSETS = 0
+            self.CURRENT_ASSETS_MEAN4 = 0
+            self.TOTAL_ASSETS = 0
+            self.TOTAL_ASSETS_MEAN4 = 0
+            self.LIABILITIES = 0
+            self.LIABILITIES_MEAN4 = 0
+            self.SHORT_LIABILITIES = 0
+            self.SHORT_LIABILITIES_MEAN4 = 0
+            self.OWNER_EQUITY = 0
+            self.OWNER_EQUITY_MEAN4 = 0
+            self.MINORITY_INTEREST = 0
+            self.MINORITY_INTEREST_MEAN4 = 0
+            self.NET_REVENUE = 0
+            self.NET_REVENUE_MEAN4 = 0
+            self.GROSS_PROFIT = 0
+            self.GROSS_PROFIT_MEAN4 = 0
+            self.OPERATING_PROFIT = 0
+            self.OPERATING_PROFIT_MEAN4 = 0
+            self.PROFIT_AFTER_TAX = 0
+            self.PROFIT_AFTER_TAX_MEAN4 = 0
+            self.NET_PROFIT = 0
+            self.NET_PROFIT_MEAN4 = 0
+
+        # --
         self.df = df.reindex(index=df.index[::-1])
         if not self.df.empty:
             self.LAST_SESSION = self.df['t'].iloc[-1]
-
             self.df['changed'] = self.df['c'].pct_change()
             self.df['rsi'] = talib.RSI(self.df['c'])
             self.df['cci'] = talib.CCI(self.df['h'], self.df['l'], self.df['c'], timeperiod=20)
@@ -141,18 +228,22 @@ class Stock:
 
     # check if current is top/bottom
     def f_is_current_possible_top(self, window=3):
-        windowCCI = self.df['cci'].tail(window)
-        max = windowCCI.max()
-        print('windowCCI', windowCCI)
-        return (max > windowCCI.iloc[0]) and (max > windowCCI.iloc[-1])
+        if hasattr(self.df, 'cci'):
+            windowCCI = self.df['cci'].tail(window)
+            max = windowCCI.max()
+            # print('windowCCI', windowCCI)
+            return (max > windowCCI.iloc[0]) and (max > windowCCI.iloc[-1])
+        else:
+            return False
 
     def f_is_current_possible_bottom(self, window=3):
-        windowCCI = self.df['cci'].tail(window)
-        min = windowCCI.min()
-        # print('windowCCI', windowCCI)
-        return (min < windowCCI.iloc[0]) and (min < windowCCI.iloc[-1])
-
-        return False
+        if hasattr(self.df, 'cci'):
+            windowCCI = self.df['cci'].tail(window)
+            min = windowCCI.min()
+            # print('windowCCI', windowCCI)
+            return (min < windowCCI.iloc[0]) and (min < windowCCI.iloc[-1])
+        else:
+            return False
 
     # Oversold --> should buy
     def f_is_over_sold(self, horizontal=100):
