@@ -4,7 +4,7 @@ import talib
 
 
 class Stock:
-    def __init__(self, code, resolution='D'):
+    def __init__(self, code, resolution='D', update_last=False):
         self.code = code
         self.resolution = resolution
         self.conn = pymysql.connect(host='localhost', user='admin', password='123456', database='mystocks')
@@ -25,7 +25,7 @@ class Stock:
         self.df_fi = pd.DataFrame(finance_info_data)  # data-frame finance information
         # print('DF_FI', self.df_fi)
 
-        if resolution == 'D':
+        if resolution == 'D' and update_last:
             # Load latest price from table tbl_price_board_minute
             sql_latest_price = """select * from tbl_price_board_minute as tpm where tpm.code='""" + code + """' order by t desc limit 1"""
             latest_price = pd.read_sql_query(sql_latest_price, self.conn)
@@ -126,10 +126,16 @@ class Stock:
         # --
         # todo: add current price before reverse string. Current price is from table price_board_minute.
         # todo: Spider price_board_minute runs every minutes
-        print('latest_price', self.latest_price)
-        # df.append(self.latest_price)
 
-        self.df = df.reindex(index=df.index[::-1]).append(self.latest_price)
+        if hasattr(self, 'latest_price') and not self.latest_price.empty:
+            print('latest_price', self.latest_price)
+            # df.append(self.latest_price)
+
+        if hasattr(self, 'latest_price') and not self.latest_price.empty:
+            self.df = df.reindex(index=df.index[::-1]).append(self.latest_price)
+        else:
+            self.df = df.reindex(index=df.index[::-1])
+
         # print('Price List', self.df)
         if not self.df.empty:
             self.LAST_SESSION = self.df['t'].iloc[-1]

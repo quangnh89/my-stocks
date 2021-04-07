@@ -1,6 +1,6 @@
 import pymysql
 import pandas as pd
-
+from datetime import datetime
 from stock import Stock
 
 if __name__=='__main__':
@@ -24,7 +24,7 @@ if __name__=='__main__':
 
     rows = []
     for idx, code in df['Code'].iteritems():
-        s = Stock(code)
+        s = Stock(code=code, resolution='D', update_last=False)
         # if s.f_check_7_conditions():
         #     print('Good code: ', code)
 
@@ -37,7 +37,8 @@ if __name__=='__main__':
         # del s
 
     results = pd.DataFrame(rows, columns=["Session", "Code", "Volume", "EPS", "EPS_MEAN4", "CCI", 'Price', 'Changed'])
-    results.to_excel("outputs/output_cci_100.xlsx", sheet_name="GoodCodes")
+    sheetName = datetime.now().strftime("%b%d")
+    results.to_excel("outputs/outputs.xlsx", sheet_name=sheetName)
 
 
 # upper, middle, lower = s.f_bband()
