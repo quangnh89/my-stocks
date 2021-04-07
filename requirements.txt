@@ -7,3 +7,4 @@ scipy
 TA-Lib
 openpyxl
 cryptography
+flask

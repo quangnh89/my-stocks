@@ -8,3 +8,4 @@
 4. Tính toán target price dựa trên EPS
 
 5. Làm phần mềm quản lý chứng khoán. Ghi nhận và cảnh báo dấu hiệu mua/bán dựa trên khuyến nghị
+    * phân lớp, tìm kiếm chứng khoán chạy theo chain
