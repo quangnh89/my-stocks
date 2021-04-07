@@ -9,12 +9,6 @@ class Stock:
         self.resolution = resolution
         self.conn = pymysql.connect(host='localhost', user='admin', password='123456', database='mystocks')
 
-        # Load finance info
-        sql_finance_info = """select * from tbl_finance_info as ti where ti.code='"""+code+"""' order by year_period desc, quarter_period desc limit 4"""
-        finance_info_data = pd.read_sql_query(sql_finance_info, self.conn)
-        self.df_fi = pd.DataFrame(finance_info_data)  # data-frame finance information
-        # print('DF_FI', self.df_fi)
-
         # Load prices
         if resolution == 'D':
             tbl = 'tbl_price_board_day'
@@ -25,14 +19,24 @@ class Stock:
         else:
             tbl = 'tbl_price_board_day'
 
+        # Load finance info
+        sql_finance_info = """select * from tbl_finance_info as ti where ti.code='"""+code+"""' order by year_period desc, quarter_period desc limit 4"""
+        finance_info_data = pd.read_sql_query(sql_finance_info, self.conn)
+        self.df_fi = pd.DataFrame(finance_info_data)  # data-frame finance information
+        # print('DF_FI', self.df_fi)
+
+        if resolution == 'D':
+            # Load latest price from table tbl_price_board_minute
+            sql_latest_price = """select * from tbl_price_board_minute as tpm where tpm.code='""" + code + """' order by t desc limit 1"""
+            latest_price = pd.read_sql_query(sql_latest_price, self.conn)
+            self.latest_price = pd.DataFrame(latest_price)
+
+        # Load price list
         sql_string = """select * from """ + tbl + """ as pb where pb.code='""" + self.code + """' order by t desc limit 365"""
         # print('sql_string', sql_string)
 
         sql_query = pd.read_sql_query(sql_string, self.conn)
         df = pd.DataFrame(sql_query)
-
-        # todo: add current price before reverse string. Current price is from table price_board_minute.
-        # todo: Spider price_board_minute runs every minutes
 
         if not self.df_fi.empty:
             # finance info #EPS means()
@@ -120,7 +124,13 @@ class Stock:
             self.NET_PROFIT_MEAN4 = 0
 
         # --
-        self.df = df.reindex(index=df.index[::-1])
+        # todo: add current price before reverse string. Current price is from table price_board_minute.
+        # todo: Spider price_board_minute runs every minutes
+        print('latest_price', self.latest_price)
+        # df.append(self.latest_price)
+
+        self.df = df.reindex(index=df.index[::-1]).append(self.latest_price)
+        # print('Price List', self.df)
         if not self.df.empty:
             self.LAST_SESSION = self.df['t'].iloc[-1]
             self.df['changed'] = self.df['c'].pct_change()
@@ -164,6 +174,9 @@ class Stock:
 
         self.LOW_52W = self.df['l'].head(260).min()
         self.HIGH_52W = self.df['h'].head(260).max()
+
+    def f_get_current_price(self):
+        return self.df['c'].iloc[-1]
 
     def f_check_has_value(self):
         return not self.df.empty

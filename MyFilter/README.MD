@@ -9,5 +9,5 @@ http://canslim.vn/
 https://www.youtube.com/watch?v=AyKzlx__82M&ab_channel=%5BKi%E1%BA%BFnth%E1%BB%A9cch%E1%BB%A9ngkho%C3%A1n%5DH%C3%B9ngCanslim
 ```
 
-5. Tính toán số lượng cổ phiếu giao dịch hàng ngày trên tổng số shares.
+5. Tính toán số lượng cổ phiếu giao dịch hàng ngày trên tổng số shares --> cổ phiếu có active không?
 6.

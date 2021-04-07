@@ -71,11 +71,14 @@ class VietstockpricesboardSpider(scrapy.Spider):
         # check resolution
         ts1 = int(datetime.now().timestamp())
         if (self.resolution == 'D') and (ts1 > (self.config.f_last_run_day() + 86400)):
-            ts2 = self.config.last_run_day
+            ts2 = self.config.f_last_run_day()
+            step = 240 * 24 * 60 * 60
         elif (self.resolution == '1') and (ts1 > (self.config.f_last_run_minute() + 60)):
-            ts2 = self.config.last_run_minute
+            ts2 = self.config.f_last_run_minute()
+            step = 240 * 60
         elif self.resolution == '60' and (ts1 > (self.config.f_last_run_hour() + 3600)):
-            ts2 = self.config.last_run_hour
+            ts2 = self.config.f_last_run_hour()
+            step = 240 * 60 * 60
         else:
             ts2 = ts1
 
@@ -87,8 +90,8 @@ class VietstockpricesboardSpider(scrapy.Spider):
 
         for code in self.companies:
             # print('code', code, ts2, ts1)
-            for x in range(ts2, ts1, 10000000):
-                ts3 = ts1 if (x + 10000000 > ts1) else (x + 10000000)
+            for x in range(ts2, ts1, step):
+                ts3 = ts1 if (x + step > ts1) else (x + step)
                 # print('Ts3', ts3)
                 url = self.api_url + '?symbol=' + code + '&resolution=' + self.resolution + '&from=' + str(x) + '&to=' + str(ts3)
                 # print('URL', url)
@@ -102,7 +105,7 @@ class VietstockpricesboardSpider(scrapy.Spider):
 
     def parse(self, response):
         code = response.meta.get('code')
-        data = re.sub('<[^<]+>', "", response.body_as_unicode())
+        data = re.sub('<[^<]+>', "", response.text)
         data = json.loads(data)
         results = []
         for idx in range(len(data['t'])):
@@ -121,3 +124,6 @@ class VietstockpricesboardSpider(scrapy.Spider):
         # print(response.text)
         # print(response.body_as_unicode())
         # pass
+
+    def closed(self, reason):
+        self.config.f_update_last_run(resolution=self.resolution)

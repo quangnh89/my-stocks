@@ -30,13 +30,13 @@ if __name__=='__main__':
 
         if s.f_check_has_value() and s.f_check_gia_tri_giao_dich_trong_phien() and s.f_check_uptrend_1_month() and s.f_check_price_jump() and s.f_check_price_continous_jump():
             print(s.LAST_SESSION, "Good to buy: ", code, s.f_total_vol(), "last CCI: ", s.f_1stCCI())
-            rows.append([s.LAST_SESSION, code, s.f_total_vol(), s.EPS, s.EPS_MEAN4, s.f_1stCCI(), s.f_last_changed()])
+            rows.append([s.LAST_SESSION, code, s.f_total_vol(), s.EPS, s.EPS_MEAN4, s.f_1stCCI(), s.f_get_current_price(), s.f_last_changed()])
 
         # if s.f_is_current_possible_bottom() and s.f_1stCCI() < -100 and s.f_check_gia_tri_giao_dich_trong_phien():
         #     rows.append([s.LAST_SESSION, code, s.f_total_vol(), s.EPS, s.EPS_MEAN4, s.f_1stCCI(), s.f_last_changed()])
         # del s
 
-    results = pd.DataFrame(rows, columns=["Session", "Code", "Volume", "EPS", "EPS_MEAN4", "CCI", 'Changed'])
+    results = pd.DataFrame(rows, columns=["Session", "Code", "Volume", "EPS", "EPS_MEAN4", "CCI", 'Price', 'Changed'])
     results.to_excel("outputs/output_cci_100.xlsx", sheet_name="GoodCodes")
 
 
