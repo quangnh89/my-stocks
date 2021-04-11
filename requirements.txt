@@ -1,3 +1,4 @@
+backtrader
 itemloaders
 scrapy
 numpy

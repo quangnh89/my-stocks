@@ -3,7 +3,7 @@ import scrapy
 import json
 import pandas as pd
 import re
-from datetime import datetime
+from datetime import datetime, time
 
 from itemloaders import ItemLoader
 
@@ -69,7 +69,8 @@ class VietstockpricesboardSpider(scrapy.Spider):
 
     def after_login(self, response):
         # check resolution
-        ts1 = int(datetime.now().timestamp())
+        now = datetime.now()
+        ts1 = int(now.timestamp())
         if (self.resolution == 'D') and (ts1 > (self.config.f_last_run_day() + 86400)):
             ts2 = self.config.f_last_run_day()
             step = 240 * 24 * 60 * 60

@@ -4,7 +4,7 @@ import talib
 
 
 class Stock:
-    def __init__(self, code, resolution='D', update_last=False):
+    def __init__(self, code, resolution='D', update_last=False, length=365):
         self.code = code
         self.resolution = resolution
         self.conn = pymysql.connect(host='localhost', user='admin', password='123456', database='mystocks')
@@ -20,7 +20,7 @@ class Stock:
             tbl = 'tbl_price_board_day'
 
         # Load finance info
-        sql_finance_info = """select * from tbl_finance_info as ti where ti.code='"""+code+"""' order by year_period desc, quarter_period desc limit 4"""
+        sql_finance_info = """select * from tbl_finance_info as ti where ti.code='""" + code + """' order by year_period desc, quarter_period desc limit 4"""
         finance_info_data = pd.read_sql_query(sql_finance_info, self.conn)
         self.df_fi = pd.DataFrame(finance_info_data)  # data-frame finance information
         # print('DF_FI', self.df_fi)
@@ -32,11 +32,12 @@ class Stock:
             self.latest_price = pd.DataFrame(latest_price)
 
         # Load price list
-        sql_string = """select * from """ + tbl + """ as pb where pb.code='""" + self.code + """' order by t desc limit 365"""
+        sql_string = """select * from """ + tbl + """ as pb where pb.code='""" + self.code + """' order by t desc limit """ + str(length)
         # print('sql_string', sql_string)
 
         sql_query = pd.read_sql_query(sql_string, self.conn)
-        df = pd.DataFrame(sql_query)
+        # original dataframe
+        self.df_o = pd.DataFrame(sql_query)
 
         if not self.df_fi.empty:
             # finance info #EPS means()
@@ -45,8 +46,8 @@ class Stock:
             rev_df_fi = self.df_fi['eps'][::-1]
             self.df_fi['eps_changed'] = rev_df_fi.pct_change()
 
-            print(self.df_fi['eps'])
-            print(self.df_fi['eps_changed'].mean())
+            # print(self.df_fi['eps'])
+            # print(self.df_fi['eps_changed'].mean())
 
             self.BVPS = self.df_fi['bvps'].iloc[0]
             self.BVPS_MEAN4 = self.df_fi['bvps'].mean()
@@ -87,8 +88,8 @@ class Stock:
             rev_df_fi = self.df_fi['eps'][::-1]
             self.df_fi['eps_changed'] = rev_df_fi.pct_change()
 
-            print(self.df_fi['eps'])
-            print(self.df_fi['eps_changed'].mean())
+            # print(self.df_fi['eps'])
+            # print(self.df_fi['eps_changed'].mean())
 
             self.BVPS = 0
             self.BVPS_MEAN4 = 0
@@ -128,13 +129,13 @@ class Stock:
         # todo: Spider price_board_minute runs every minutes
 
         if hasattr(self, 'latest_price') and not self.latest_price.empty:
-            print('latest_price', self.latest_price)
-            # df.append(self.latest_price)
+            # print('latest_price', self.latest_price)
+            self.df_o.append(self.latest_price)
 
         if hasattr(self, 'latest_price') and not self.latest_price.empty:
-            self.df = df.reindex(index=df.index[::-1]).append(self.latest_price)
+            self.df = self.df_o.reindex(index=self.df_o.index[::-1]).append(self.latest_price)
         else:
-            self.df = df.reindex(index=df.index[::-1])
+            self.df = self.df_o.reindex(index=self.df_o.index[::-1])
 
         # print('Price List', self.df)
         if not self.df.empty:
@@ -144,7 +145,7 @@ class Stock:
             self.df['cci'] = talib.CCI(self.df['h'], self.df['l'], self.df['c'], timeperiod=20)
 
             self.df['macd'], self.df['macdsignal'], self.df['macdhist'] = talib.MACD(self.df['c'], fastperiod=12,
-                                                                                         slowperiod=26, signalperiod=9)
+                                                                                     slowperiod=26, signalperiod=9)
 
             self.CURRENT_CLOSE = self.df['c'].iloc[-1]
             self.df['SMA_5'] = talib.SMA(self.df['c'], timeperiod=5)
@@ -157,10 +158,72 @@ class Stock:
             self.df['V_SMA_20'] = talib.SMA(self.df['v'], timeperiod=20)
             self.LAST_V_SMA_20 = self.df['V_SMA_20'].iloc[-1]
 
+            self.CDL2CROWS = talib.CDL2CROWS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDL3BLACKCROWS = talib.CDL3BLACKCROWS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDL3INSIDE = talib.CDL3INSIDE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDL3LINESTRIKE = talib.CDL3LINESTRIKE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDL3OUTSIDE = talib.CDL3OUTSIDE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDL3STARSINSOUTH = talib.CDL3STARSINSOUTH(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDL3WHITESOLDIERS = talib.CDL3WHITESOLDIERS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLABANDONEDBABY = talib.CDLABANDONEDBABY(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLADVANCEBLOCK = talib.CDLADVANCEBLOCK(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLBELTHOLD = talib.CDLBELTHOLD(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLBREAKAWAY = talib.CDLBREAKAWAY(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLCLOSINGMARUBOZU = talib.CDLCLOSINGMARUBOZU(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLCONCEALBABYSWALL = talib.CDLCONCEALBABYSWALL(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLCOUNTERATTACK = talib.CDLCOUNTERATTACK(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLDARKCLOUDCOVER = talib.CDLDARKCLOUDCOVER(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLDOJI = talib.CDLDOJI(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLDOJISTAR = talib.CDLDOJISTAR(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLDRAGONFLYDOJI = talib.CDLDRAGONFLYDOJI(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLENGULFING = talib.CDLENGULFING(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLEVENINGDOJISTAR = talib.CDLEVENINGDOJISTAR(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLEVENINGSTAR = talib.CDLEVENINGSTAR(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLGAPSIDESIDEWHITE = talib.CDLGAPSIDESIDEWHITE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLGRAVESTONEDOJI = talib.CDLGRAVESTONEDOJI(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHAMMER = talib.CDLHAMMER(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHANGINGMAN = talib.CDLHANGINGMAN(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHARAMI = talib.CDLHARAMI(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHARAMICROSS = talib.CDLHARAMICROSS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHIGHWAVE = talib.CDLHIGHWAVE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHIKKAKE = talib.CDLHIKKAKE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHIKKAKEMOD = talib.CDLHIKKAKEMOD(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLHOMINGPIGEON = talib.CDLHOMINGPIGEON(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLIDENTICAL3CROWS = talib.CDLIDENTICAL3CROWS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLINNECK = talib.CDLINNECK(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLINVERTEDHAMMER = talib.CDLINVERTEDHAMMER(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLKICKING = talib.CDLKICKING(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLKICKINGBYLENGTH = talib.CDLKICKINGBYLENGTH(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLLADDERBOTTOM = talib.CDLLADDERBOTTOM(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLLONGLEGGEDDOJI = talib.CDLLONGLEGGEDDOJI(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLLONGLINE = talib.CDLLONGLINE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLMARUBOZU = talib.CDLMARUBOZU(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLMATCHINGLOW = talib.CDLMATCHINGLOW(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLMATHOLD = talib.CDLMATHOLD(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLMORNINGDOJISTAR = talib.CDLMORNINGDOJISTAR(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLMORNINGSTAR = talib.CDLMORNINGSTAR(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLONNECK = talib.CDLONNECK(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLPIERCING = talib.CDLPIERCING(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLRICKSHAWMAN = talib.CDLRICKSHAWMAN(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLRISEFALL3METHODS = talib.CDLRISEFALL3METHODS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLSEPARATINGLINES = talib.CDLSEPARATINGLINES(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLSHOOTINGSTAR = talib.CDLSHOOTINGSTAR(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLSHORTLINE = talib.CDLSHORTLINE(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLSPINNINGTOP = talib.CDLSPINNINGTOP(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLSTALLEDPATTERN = talib.CDLSTALLEDPATTERN(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLSTICKSANDWICH = talib.CDLSTICKSANDWICH(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLTAKURI = talib.CDLTAKURI(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLTASUKIGAP = talib.CDLTASUKIGAP(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLTHRUSTING = talib.CDLTHRUSTING(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLTRISTAR = talib.CDLTRISTAR(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLUNIQUE3RIVER = talib.CDLUNIQUE3RIVER(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLUPSIDEGAP2CROWS = talib.CDLUPSIDEGAP2CROWS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            self.CDLXSIDEGAP3METHODS = talib.CDLXSIDEGAP3METHODS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+
             values = []
             for index, cci in self.df['cci'].items():
                 v = 0
-                if index >= (len(df) - 1) or index <= 0:
+                if index >= (len(self.df_o) - 1) or index <= 0:
                     v = 0
                 else:
                     if (cci < self.df['cci'].iloc[index + 1]) and (cci < self.df['cci'].iloc[index - 1]):
@@ -174,7 +237,7 @@ class Stock:
 
         # 4 weeks
         try:
-            self.SMA_200_20 = talib.SMA(self.df['close'], timeperiod=200).iloc[-20]
+            self.SMA_200_20 = talib.SMA(self.df['c'], timeperiod=200).iloc[-20]
         except:
             self.SMA_200_20 = 0
 
@@ -309,6 +372,25 @@ class Stock:
                condition_5 and \
                condition_6 and \
                condition_7
+
+    def f_khoi_luong_giao_dich_tang_dan_theo_so_phien(self, window=5):
+        if len(self.df) > 5:
+            # print(1, self.df['t'].iloc[-1], self.df['v'].iloc[-1])
+            # print(2, self.df['t'].iloc[-2], self.df['v'].iloc[-2])
+            return self.df['v'].iloc[-1] > self.df['v'].iloc[-2] > self.df['v'].iloc[-3]
+        else:
+            return False
+
+    def f_gia_tang_dan(self, window=5):
+        if len(self.df) > 5:
+            return self.df['c'].iloc[-1] > self.df['c'].iloc[-2] > self.df['c'].iloc[-3]
+
+    def f_check_two_crows(self):
+        try:
+            res = talib.CDL2CROWS(self.df['o'].values, self.df['h'].values, self.df['l'].values, self.df['c'].values)
+            return pd.DataFrame({'CDL2CROWS': res}, index=self.df.index)
+        except:
+            return pd.DataFrame({'CDL2CROWS': [-1]})
 
     # destructor
     def __del__(self):
