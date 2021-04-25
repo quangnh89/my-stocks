@@ -3,12 +3,19 @@ import scrapy
 import json
 import pandas as pd
 import re
-from datetime import datetime, time
+import os
+from datetime import datetime
 
-from itemloaders import ItemLoader
+from dotenv import load_dotenv
 
 from StockSpiders3.items import OHLC
 from StockSpiders3.utils import Config
+
+# load_dotenv()  # take environment variables from .env.
+# DB_NAME = os.getenv('DB_NAME')
+# DB_USER = os.getenv('DB_USER')
+# DB_PASSWD = os.getenv('DB_PASSWD')
+# DB_HOST = os.getenv('DB_HOST')
 
 
 class VietstockpricesboardSpider(scrapy.Spider):
@@ -17,9 +24,7 @@ class VietstockpricesboardSpider(scrapy.Spider):
     start_urls = ['https://finance.vietstock.vn']
     headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0'}
     api_url = "https://api.vietstock.vn/ta/history"
-    # 1420045200 - 2015/1/1 00:00:00
-    START_DATE = 1420045200
-    DAILY = False
+
     df_companies = None
     companies = None
 
@@ -31,7 +36,6 @@ class VietstockpricesboardSpider(scrapy.Spider):
     # https://api.vietstock.vn/ta/history?symbol=BHP&resolution=D&from=1586252875&to=1617356935
 
     def start_requests(self):
-        self.DAILY = self.settings.get('RUN_DAILY', False)
         db_settings = self.settings.getdict("DB_SETTINGS")
         db = db_settings['db']
         user = db_settings['user']
@@ -40,7 +44,7 @@ class VietstockpricesboardSpider(scrapy.Spider):
 
         conn = pymysql.connect(host=host, user=user, password=passwd, database=db,
                                cursorclass=pymysql.cursors.DictCursor)
-        data = pd.read_sql_query('''select * from tbl_company ''', conn)
+        data = pd.read_sql_query(''' select * from tbl_company where Exchange='UpCom' or Exchange='OTC' or Exchange='HOSE' or Exchange='HNX' ''', conn)
 
         self.df_companies = pd.DataFrame(data)
         self.companies = self.df_companies['Code']
@@ -81,10 +85,9 @@ class VietstockpricesboardSpider(scrapy.Spider):
             ts2 = self.config.f_last_run_hour()
             step = 240 * 60 * 60
         else:
-            ts2 = ts1
+            return
 
-        print('Resolution', self.resolution)
-        print('last_run', self.config.f_last_run_day())
+        print('\n##### --> Resolution: %s, Last Run: %s, Step: %s\n' % (self.resolution, self.config.f_last_run_day(), step))
         #
         # self.config.f_update_last_run('D')
         # pass
@@ -97,12 +100,6 @@ class VietstockpricesboardSpider(scrapy.Spider):
                 url = self.api_url + '?symbol=' + code + '&resolution=' + self.resolution + '&from=' + str(x) + '&to=' + str(ts3)
                 # print('URL', url)
                 yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={'code': code})
-
-            # while ts2 >= self.START_DATE:
-            #     ts2 = ts1 - 20000000
-            #     url = self.api_url + '?symbol=' + code + '&resolution=D&from=' + str(ts2) + '&to=' + str(ts1)
-            #     ts1 = ts2
-            #     yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={'code': code})
 
     def parse(self, response):
         code = response.meta.get('code')
@@ -121,10 +118,6 @@ class VietstockpricesboardSpider(scrapy.Spider):
             item['v'] = data['v'][idx]
             results.append(item)
         return results
-
-        # print(response.text)
-        # print(response.body_as_unicode())
-        # pass
 
     def closed(self, reason):
         self.config.f_update_last_run(resolution=self.resolution)

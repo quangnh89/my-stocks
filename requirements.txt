@@ -1,12 +1,11 @@
+itemadapter
 twisted
-backtrader
 itemloaders
 scrapy
 numpy
 pymysql
 pandas==1.2.4
 scipy
-TA-Lib
 openpyxl
 cryptography
-flask
+python-dotenv

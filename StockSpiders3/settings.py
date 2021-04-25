@@ -63,13 +63,9 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'StockSpiders3.pipelines.HtmlCleanerPipeline': 300,
-    'StockSpiders3.pipelines.VietstockPriceboardPipeline': 301,
-    'StockSpiders3.pipelines.VietstockPriceboardHourPipeline': 301,
-    'StockSpiders3.pipelines.VietstockPriceboardMinutePipeline': 301,
-    'StockSpiders3.pipelines.VietstockCompanyAZPipeline': 302,
-    'StockSpiders3.pipelines.VietstockFinanceInfoPipeline': 303,
-    'StockSpiders3.pipelines.DatabasePipeline': 309,
+    'StockSpiders3.pipelines.VietstockPriceboardPipeline': 300,
+    'StockSpiders3.pipelines.VietstockCompanyAZPipeline': 301,
+    'StockSpiders3.pipelines.VietstockFinanceInfoPipeline': 302
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -99,5 +95,3 @@ DB_SETTINGS = {
     'passwd': '123456',
     'host': 'localhost',
 }
-
-RUN_DAILY = True
