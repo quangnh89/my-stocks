@@ -4,7 +4,7 @@ itemloaders
 scrapy
 numpy
 pymysql
-pandas
+pandas==1.2.4
 scipy
 TA-Lib
 openpyxl
